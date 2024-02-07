@@ -253,6 +253,8 @@ class Leira_Letter_Avatar{
 			}
 		}
 
+		$this->loader->add_filter( 'bb_attachments_get_default_profile_group_avatar_image', $plugin_compatibility, 'bb_attachments_get_default_profile_group_avatar_image', 10, 2 ); // BuddyBoss integration
+		
 		$this->loader->add_filter( 'um_user_avatar_url_filter', $plugin_compatibility, 'um_user_avatar_url_filter', 10, 3 );//Ultimate Membership integration
 
 		$this->loader->add_filter( 'get_avatar_url', $plugin_compatibility, 'wpdiscuz_get_avatar_url', 10, 3 );//wpdiscuz integration
