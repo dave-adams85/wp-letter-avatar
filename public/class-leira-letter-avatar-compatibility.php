@@ -12,6 +12,42 @@
 class Leira_Letter_Avatar_Compatibility{
 
 	/**
+	 * BuddyBoss compatibility
+	 * This function ensures BuddyBoss uses Letter Avatars.
+	 *
+	 * @param string  $avatar_image_url URL of the avatar image.
+	 * @param array   $params           Parameters
+	 *
+	 * @return bool
+	 * @since 1.3.8
+	 */
+	public function bb_attachments_get_default_profile_group_avatar_image( $avatar_image_url, $params ) {
+		/**
+		 * BuddyBoss seems to use bb_attachments_get_default_profile_group_avatar_image() to load avatars.
+		 * 
+		 * The above function, if there is no custom avatar, and WordPress avatars are turned on, will call 
+		 * get_avatar_url() without any user data, so every user ends up with the same avatar.
+		 * 
+		 * This function injects a properly formed avatar into the filter, so BuddyBoss displays letter avatars for users.
+		 */
+
+		if ( ! function_exists('bp_get_option') || ! function_exists('bb_get_profile_avatar_type') ) {
+			return $avatar_image_url;
+		}
+
+		$show_avatar         = bp_get_option( 'show_avatars' );
+		$profile_avatar_type = bb_get_profile_avatar_type();
+
+		// Only override if the a custom avatar option is enabled. 
+		if ( $show_avatar && 'WordPress' === $profile_avatar_type && 'blank' !== bp_get_option( 'avatar_default', 'mystery' ) ) {
+			return $this->bp_core_default_avatar( $avatar_image_url, $params );
+		} else {
+			return $avatar_image_url;
+		}
+		
+	}
+	
+	/**
 	 * BuddyPress compatibility
 	 * Determine if buddy press should use gravatar as default image or letter avatar.
 	 * If user didnt upload profile picture this method is executed
