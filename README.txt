@@ -1,10 +1,10 @@
 === Leira Letter Avatar ===
-Contributors: arielhr1987, jlcd0894, ivankuraev
+Contributors: arielhr1987, jlcd0894, ivankuraev, dave-adams85
 Donate link: https://github.com/arielhr1987
 Tags: user, avatar, image, admin, frontend, letter, initial
 Requires at least: 4.7
-Tested up to: 6.0
-Stable tag: 1.3.7
+Tested up to: 6.4
+Stable tag: 1.3.8
 Requires PHP: 5.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -90,6 +90,9 @@ Use .png format instead.
 6. Comments in frontend with letter avatar.
 
 == Changelog ==
+
+= 1.3.8 =
+* Fixed BuddyBoss compatibility - SVG avatars and Gravatar.com being incorrectly called for everything
 
 = 1.3.7 =
 * Fix bug with php8 and $size variable (intval)
