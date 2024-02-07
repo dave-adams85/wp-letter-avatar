@@ -241,8 +241,8 @@ class Leira_Letter_Avatar{
 		$plugin_compatibility = new Leira_Letter_Avatar_Compatibility();
 		$this->loader->set( 'compatibility', $plugin_compatibility );
 
-		$this->loader->add_filter( 'bp_core_fetch_avatar_no_grav', $plugin_compatibility, 'bp_core_fetch_avatar_no_grav', 10, 2 );//BuddyPress integration
-
+		$this->loader->add_filter( 'bp_core_fetch_avatar_no_grav', $plugin_compatibility, 'bp_core_fetch_avatar_no_grav', 100, 2 );//BuddyPress integration. Changed priority from 10 to 100 for BuddyBoss support, otherwise BuddyBoss resets no_grav to false.
+		
 		//$this->loader->add_filter( 'bp_core_default_avatar_user', $plugin_compatibility, 'bp_core_default_avatar', 10, 2 );//BuddyPress integration
 
 		if(function_exists('bp_get_version') && $bp_version = bp_get_version()){
