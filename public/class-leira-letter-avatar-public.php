@@ -474,7 +474,6 @@ class Leira_Letter_Avatar_Public{
 
 	/**
 	 * Generate, if it doesn't exist, an image file from parameters.
-	 * If system is unable to create the image, an image service is used instead
 	 *
 	 * @param array $data Array containing all parameters to generate image
 	 *
@@ -483,16 +482,9 @@ class Leira_Letter_Avatar_Public{
 	 */
 	public function generate_image( $data ) {
 
-		$url = 'https://us-central1-leira-letter-avatar.cloudfunctions.net/generate';
-
-		$params            = $data;//clone array
-		$params['rounded'] = ( isset( $params['rounded'] ) && $params['rounded'] ) ? '1' : 'no';
-		$params['bold']    = ( isset( $params['bold'] ) && $params['bold'] ) ? '1' : 'no';
-
-		$url = add_query_arg( rawurlencode_deep( array_filter( $params ) ), set_url_scheme( $url ) );
-
 		$format = mb_strtolower( $data['format'] );
 		$format = in_array( $format, leira_letter_avatar()->sanitizer->get_formats() ) ? $format : 'svg';
+		
 		if ( $format != 'svg' ) {
 			//Check if system is able to handle image
 			if ( ! extension_loaded( 'gd' ) ) {
@@ -500,60 +492,60 @@ class Leira_Letter_Avatar_Public{
 				$format = 'svg';
 			}
 		}
+		
+		//WP folders
+		$wp_uploads_dir      = wp_upload_dir();
+		$wp_uploads_dir_base = trailingslashit( $wp_uploads_dir['basedir'] ); //path to uploads
+		$wp_uploads_url_base = trailingslashit( $wp_uploads_dir['baseurl'] ); //url to uploads
 
-		$save_to_uploads = true;
-		if ( $save_to_uploads ) {
+		//Avatar folder
+		$avatar_folder = apply_filters( 'leira_letter_avatar_upload_folder', 'letter-avatar' );
+		$avatar_folder = trailingslashit( $avatar_folder );
 
-			//WP folders
-			$wp_uploads_dir      = wp_upload_dir();
-			$wp_uploads_dir_base = trailingslashit( $wp_uploads_dir['basedir'] ); //path to uploads
-			$wp_uploads_url_base = trailingslashit( $wp_uploads_dir['baseurl'] ); //url to uploads
+		//Avatar folder path
+		$avatar_folder_path = $wp_uploads_dir_base . $avatar_folder;
 
-			//Avatar folder
-			$avatar_folder = apply_filters( 'leira_letter_avatar_upload_folder', 'letter-avatar' );
-			$avatar_folder = trailingslashit( $avatar_folder );
+		//Avatar filename
+		$avatar_filename = md5( json_encode( $data ) ) . '.' . $format;
 
-			//Avatar folder path
-			$avatar_folder_path = $wp_uploads_dir_base . $avatar_folder;
+		//Avatar path
+		$avatar_path = $avatar_folder_path . $avatar_filename;
 
-			//Avatar filename
-			$avatar_filename = md5( json_encode( $data ) ) . '.' . $format;
+		$avatar_exist = file_exists( $avatar_path );
+		if ( ! $avatar_exist ) {
+			/**
+			 * Lets generate the image and save it to uploads folder
+			 */
+			$avatar = $this->image_content( $data );
 
-			//Avatar path
-			$avatar_path = $avatar_folder_path . $avatar_filename;
-
-			$avatar_exist = file_exists( $avatar_path );
-			if ( ! $avatar_exist ) {
-				/**
-				 * Lets generate the image and save it to uploads folder
-				 */
-				$avatar = $this->image_content( $data );
-
-				/**
-				 * Save image content to file
-				 */
-				if ( ! file_exists( $avatar_folder_path ) ) {
-					@mkdir( $avatar_folder_path, ( fileperms( ABSPATH ) & 0777 | 0755 ), true );
-				}
-				//$avatar_exist = $wp_filesystem->put_contents( $avatar_path, $avatar, FS_CHMOD_FILE );
-				$fp = @fopen( $avatar_path, 'wb' );
-				if ( $fp ) {
-					mbstring_binary_safe_encoding();
-					$data_length   = strlen( $avatar );
-					$bytes_written = fwrite( $fp, $avatar );
-					reset_mbstring_encoding();
-					fclose( $fp );
-					if ( $data_length !== $bytes_written ) {
-						$avatar_exist = false;
-					} else {
-						$avatar_exist = true;
-					}
-					chmod( $avatar_path, ( fileperms( ABSPATH . 'index.php' ) & 0777 | 0644 ) );
-				}
+			/**
+			 * Save image content to file
+			 */
+			if ( ! file_exists( $avatar_folder_path ) ) {
+				@mkdir( $avatar_folder_path, ( fileperms( ABSPATH ) & 0777 | 0755 ), true );
 			}
-			if ( $avatar_exist ) {
-				$url = $wp_uploads_url_base . $avatar_folder . $avatar_filename;
+
+			$fp = @fopen( $avatar_path, 'wb' );
+			if ( $fp ) {
+				mbstring_binary_safe_encoding();
+				$data_length   = strlen( $avatar );
+				$bytes_written = fwrite( $fp, $avatar );
+				reset_mbstring_encoding();
+				fclose( $fp );
+				if ( $data_length !== $bytes_written ) {
+					$avatar_exist = false;
+				} else {
+					$avatar_exist = true;
+				}
+				chmod( $avatar_path, ( fileperms( ABSPATH . 'index.php' ) & 0777 | 0644 ) );
 			}
+		}
+		
+		if ( $avatar_exist ) {
+			$url = $wp_uploads_url_base . $avatar_folder . $avatar_filename;
+		} else {
+			//The server either hasn't generated, stored, or retrieved the avatar. Return nothing, so subsequent filters can take over (if there are any).
+			$url = '';
 		}
 
 		return set_url_scheme( $url );
