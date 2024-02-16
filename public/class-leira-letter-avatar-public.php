@@ -451,7 +451,7 @@ class Leira_Letter_Avatar_Public{
 		$url_args = array(
 			'cache'      => 1, //change this number to force regenerate images
 			'size'       => $size,
-			'font-size'  => $size / 2,
+			'font-size'  => $size / 2.5,
 			//'length'     => '', //image text length already set
 			'name'       => $letters,
 			'rounded'    => get_network_option( null, 'leira_letter_avatar_rounded', true ),
