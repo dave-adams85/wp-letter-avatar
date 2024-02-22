@@ -382,7 +382,8 @@ class Leira_Letter_Avatar_Public{
 				break;
 			case 'auto':
 			default:
-				$bg = substr( $email_hash, 0, 6 );
+				// Generate a pastel effect background, unique to the $email_hash
+				$bg = $this->generate_color_from_hash( $email_hash );
 		}
 		$bg = trim( trim( $bg ), '#' );
 		$bg = $this->sanitize->background( $bg );
@@ -392,8 +393,23 @@ class Leira_Letter_Avatar_Public{
 		 */
 		$color_method = get_network_option( null, 'leira_letter_avatar_color_method', 'auto' );
 		$color_method = $this->sanitize->color_method( $color_method );
-		//By default find the best contrast color for the background
-		$color = $this->get_contrast_color( $bg );
+		
+		
+		switch ( $current_option ) {
+			case  'fixed':
+				// Find the best contrast color for the background	
+				$color = $this->get_contrast_color( $bg );
+				break;
+			case 'random':
+				// Find the best contrast color for the background	
+				$color = $this->get_contrast_color( $bg );
+				break;
+			case 'auto':
+			default:
+				// Generate a color to complement the pastel by default, using a much higher lightness value.
+				$color = $this->generate_color_from_hash( $email_hash, 40, 30 );
+		}
+		
 		if ( $color_method == 'fixed' ) {
 			$color = get_network_option( null, 'leira_letter_avatar_color', 'ffffff' );
 		}
@@ -712,4 +728,202 @@ class Leira_Letter_Avatar_Public{
 			return hexdec( str_pad( $c, 2, $c ) );
 		}, str_split( ltrim( $hex, '#' ), strlen( $hex ) > 4 ? 2 : 1 ) );
 	}
+
+	/**
+	 * Generates a color from the hash in HSL format.
+	 *
+	 * @param string $hex Color in hex format
+	 *
+	 * @return array|int[]
+	 * @since 1.3.0
+	 */
+	public function generate_color_from_hash( $input_hash, $saturation = 40, $lightness = 80 ) {
+		$hash = 0;
+		
+		for ($i = 0; $i < strlen($input_hash); $i++) {
+			$hash = ord($input_hash[$i]) + (($hash << 5) - $hash);
+		}
+		$h = fmod($hash, 360);
+		return $this->hslToHex($h, $saturation, $lightness, true);
+	}
+
+	/**
+	 * Converts HSL to Hex by converting it to 
+	 * RGB, then converting that to hex.
+	 * 
+	 * string hslToHex($h, $s, $l[, $prependPound = true]
+	 * 
+	 * $h is the Degrees value of the Hue
+	 * $s is the Percentage value of the Saturation
+	 * $l is the Percentage value of the Lightness
+	 * $prependPound is a bool, whether you want a pound 
+	 *  sign prepended. (optional - default=true)
+	 *
+	 * Calls: 
+	 *   hslToRgb
+	 *
+	 * Output: Hex in the format: #00ff88 (with 
+	 * pound sign).  Rounded to the nearest whole
+	 * number.
+	 */
+	public function hslToHex($h, $s, $l, $prependPound = true)
+	{
+		//convert hsl to rgb
+		$rgb = $this->hslToRgb($h, $s, $l);
+
+		//convert rgb to hex
+		$hexR = $rgb['r'];
+		$hexG = $rgb['g'];
+		$hexB = $rgb['b'];
+
+		//round to the nearest whole number
+		$hexR = round($hexR);
+		$hexG = round($hexG);
+		$hexB = round($hexB);
+
+		//convert to hex
+		$hexR = dechex($hexR);
+		$hexG = dechex($hexG);
+		$hexB = dechex($hexB);
+
+		//check for a non-two string length
+		//if it's 1, we can just prepend a
+		//0, but if it is anything else non-2,
+		//it must return false, as we don't 
+		//know what format it is in.
+		if (strlen($hexR) != 2) {
+			if (strlen($hexR) == 1) {
+				//probably in format #0f4, etc.
+				$hexR = "0" . $hexR;
+			} else {
+				//unknown format
+				return false;
+			}
+		}
+		if (strlen($hexG) != 2) {
+			if (strlen($hexG) == 1) {
+				$hexG = "0" . $hexG;
+			} else {
+				return false;
+			}
+		}
+		if (strlen($hexB) != 2) {
+			if (strlen($hexB) == 1) {
+				$hexB = "0" . $hexB;
+			} else {
+				return false;
+			}
+		}
+
+		//if prependPound is set, will prepend a
+		//# sign to the beginning of the hex code.
+		//(default = true)
+		$hex = "";
+		if ($prependPound) {
+			$hex = "#";
+		}
+
+		$hex = $hex . $hexR . $hexG . $hexB;
+
+		return $hex;
+	}
+	
+	/**
+	 * Converts an HSL color value to RGB. Conversion formula
+	 * adapted from http://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/.
+	 * Assumes h, s, and l are in the format Degrees,
+	 * Percent, Percent, and returns r, g, and b in 
+	 * the range [0 - 255].
+	 *
+	 * Called by hslToHex by default.
+	 *
+	 * Calls: 
+	 *   degPercPercToHsl
+	 *   hueToRgb
+	 *
+	 * @param   Number  h       The hue value
+	 * @param   Number  s       The saturation level
+	 * @param   Number  l       The luminence
+	 * @return  Array           The RGB representation
+	 */
+	public function hslToRgb($h, $s, $l)
+	{
+		//convert the hue's 360 degrees in a circle to 1
+		$h /= 360;
+		//convert the saturation and lightness to the 0-1 
+		//range by multiplying by 100
+		$s /= 100;
+		$l /= 100;
+
+		//If there's no saturation, the color is a greyscale,
+		//so all three RGB values can be set to the lightness.
+		//(Hue doesn't matter, because it's grey, not color)
+		if ($s == 0) {
+			$r = $l * 255;
+			$g = $l * 255;
+			$b = $l * 255;
+		} else {
+			//calculate some temperary variables to make the 
+			//calculation eaisier.
+			if ($l < 0.5) {
+				$temp2 = $l * (1 + $s);
+			} else {
+				$temp2 = ($l + $s) - ($s * $l);
+			}
+			$temp1 = 2 * $l - $temp2;
+
+			//run the calculated vars through hueToRgb to
+			//calculate the RGB value.  Note that for the Red
+			//value, we add a third (120 degrees), to adjust 
+			//the hue to the correct section of the circle for
+			//red.  Simalarly, for blue, we subtract 1/3.
+			$r = 255 * $this->hueToRgb($temp1, $temp2, $h + (1 / 3));
+			$g = 255 * $this->hueToRgb($temp1, $temp2, $h);
+			$b = 255 * $this->hueToRgb($temp1, $temp2, $h - (1 / 3));
+		}
+		$rgb['r'] = $r;
+		$rgb['g'] = $g;
+		$rgb['b'] = $b;
+		return $rgb;
+		// return "rgb($r, $g, $b)";
+	}
+
+	/**
+	 * Converts an HSL hue to it's RGB value.  
+	 *
+	 * Input: $temp1 and $temp2 - temperary vars based on 
+	 * whether the lumanence is less than 0.5, and 
+	 * calculated using the saturation and luminence
+	 * values.
+	 *  $hue - the hue (to be converted to an RGB 
+	 * value)  For red, add 1/3 to the hue, green 
+	 * leave it alone, and blue you subtract 1/3 
+	 * from the hue.
+	 *
+	 * Output: One RGB value.
+	 *
+	 * Thanks to Easy RGB for this function (Hue_2_RGB).
+	 * http://www.easyrgb.com/index.php?X=MATH&$h=19#text19
+	 *
+	 */
+	public function hueToRgb($temp1, $temp2, $hue)
+	{
+		if ($hue < 0) {
+			$hue += 1;
+		}
+		if ($hue > 1) {
+			$hue -= 1;
+		}
+
+		if ((6 * $hue) < 1) {
+			return ($temp1 + ($temp2 - $temp1) * 6 * $hue);
+		} elseif ((2 * $hue) < 1) {
+			return $temp2;
+		} elseif ((3 * $hue) < 2) {
+			return ($temp1 + ($temp2 - $temp1) * ((2 / 3) - $hue) * 6);
+		}
+		return $temp1;
+	}
+
+	
 }
